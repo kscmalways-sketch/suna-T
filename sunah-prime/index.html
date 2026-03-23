@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>선아쌤의 소수 판별기</title>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&family=Jua&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --sky: #e8f4fd;
+      --board-green: #2d6a4f;
+      --chalk-white: #f5f0e8;
+      --chalk-yellow: #f9e784;
+      --chalk-pink: #ffb3c6;
+      --chalk-blue: #a8dadc;
+      --chalk-orange: #ffb347;
+      --wood: #c8a96e;
+      --wood-dark: #a07850;
+      --desk-brown: #d4a574;
+      --red-pen: #e63946;
+      --blue-pen: #1d3557;
+      --ink-blue: #457b9d;
+      --shadow: rgba(0,0,0,0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Gaegu', cursive;
+      background-color: var(--sky);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── 배경 패턴 (바닥) ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(150,200,255,0.18) 39px, rgba(150,200,255,0.18) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(150,200,255,0.18) 39px, rgba(150,200,255,0.18) 40px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── 떠다니는 장식 아이콘들 ── */
+    .deco {
+      position: fixed;
+      font-size: 1.8rem;
+      opacity: 0.25;
+      animation: float 6s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .deco:nth-child(1)  { top:  6%; left:  3%; animation-delay: 0s; }
+    .deco:nth-child(2)  { top: 12%; right: 5%; animation-delay: 1s; }
+    .deco:nth-child(3)  { top: 35%; left:  1%; animation-delay: 2s; }
+    .deco:nth-child(4)  { top: 55%; right: 2%; animation-delay: 0.5s; }
+    .deco:nth-child(5)  { top: 75%; left:  4%; animation-delay: 1.5s; }
+    .deco:nth-child(6)  { top: 88%; right: 4%; animation-delay: 2.5s; }
+    .deco:nth-child(7)  { top: 20%; left: 48%; animation-delay: 3s; }
+    @keyframes float {
+      0%,100% { transform: translateY(0) rotate(-5deg); }
+      50%      { transform: translateY(-14px) rotate(5deg); }
+    }
+
+    /* ── 칠판 헤더 ── */
+    .header-board {
+      position: relative;
+      z-index: 1;
+      background: var(--board-green);
+      margin: 28px 20px 0;
+      border-radius: 12px;
+      padding: 28px 24px 22px;
+      box-shadow: 0 6px 0 var(--wood-dark), 0 8px 18px var(--shadow);
+      border: 6px solid var(--wood);
+      text-align: center;
+      overflow: hidden;
+    }
+    .header-board::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        180deg,
+        rgba(255,255,255,0.02) 0px,
+        rgba(255,255,255,0.02) 1px,
+        transparent 1px,
+        transparent 24px
+      );
+    }
+    .chalk-title {
+      font-family: 'Nanum Pen Script', cursive;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      color: var(--chalk-white);
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.3), 0 0 20px rgba(255,255,255,0.15);
+      letter-spacing: 2px;
+      line-height: 1.2;
+      position: relative;
+    }
+    .chalk-sub {
+      font-family: 'Gaegu', cursive;
+      font-size: 1rem;
+      color: var(--chalk-yellow);
+      margin-top: 6px;
+      opacity: 0.9;
+      position: relative;
+    }
+    /* 분필 먼지 */
+    .dust {
+      position: absolute;
+      bottom: 8px; right: 18px;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 6px;
+    }
+
+    /* ── 칠판 지우개 & 분필 장식 ── */
+    .board-shelf {
+      position: relative;
+      z-index: 1;
+      background: var(--wood);
+      margin: 0 20px;
+      height: 14px;
+      border-radius: 0 0 6px 6px;
+      box-shadow: 0 4px 8px var(--shadow);
+    }
+    .eraser {
+      position: absolute;
+      right: 30px;
+      top: -8px;
+      width: 42px; height: 20px;
+      background: #f0d9b5;
+      border-radius: 4px;
+      border: 2px solid #c8a96e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.55rem;
+      color: #999;
+    }
+    .chalks {
+      position: absolute;
+      left: 20px; top: -12px;
+      display: flex; gap: 4px;
+    }
+    .chalk-stick {
+      width: 8px; height: 26px;
+      border-radius: 2px;
+    }
+
+    /* ── 메인 컨테이너 ── */
+    .main {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 16px 60px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+    @media (max-width: 640px) {
+      .main { grid-template-columns: 1fr; }
+    }
+
+    /* ── 카드 (종이 노트북 느낌) ── */
+    .card {
+      background: #fffef5;
+      border-radius: 10px;
+      padding: 28px 26px 30px;
+      box-shadow: 4px 4px 0 #d4c9a0, 0 8px 24px rgba(0,0,0,0.1);
+      border: 2px solid #e8ddb8;
+      position: relative;
+      overflow: hidden;
+    }
+    /* 노트 줄 */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 60px; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        180deg,
+        transparent 0px,
+        transparent 31px,
+        #d4e8f7 31px,
+        #d4e8f7 32px
+      );
+      pointer-events: none;
+    }
+    /* 왼쪽 빨간 줄 */
+    .card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 55px;
+      width: 2px; height: 100%;
+      background: rgba(230, 57, 70, 0.35);
+    }
+
+    .card-icon {
+      font-size: 2.4rem;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .card-title {
+      font-family: 'Jua', sans-serif;
+      font-size: 1.35rem;
+      color: var(--blue-pen);
+      margin-bottom: 18px;
+      position: relative;
+    }
+    .card-title span {
+      background: var(--chalk-yellow);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* ── 입력 ── */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      position: relative;
+    }
+    input[type="number"], input[type="text"] {
+      width: 50%;
+      flex: none;
+      font-family: 'Jua', sans-serif;
+      font-size: 1.1rem;
+      padding: 12px 14px;
+      border: 3px solid var(--ink-blue);
+      border-radius: 10px;
+      background: #ffffff;
+      color: var(--blue-pen);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -moz-appearance: textfield;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.08), 0 2px 0 #c8d8e8;
+      position: relative;
+      z-index: 1;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    input::placeholder {
+      color: #aabccc;
+      font-size: 1rem;
+    }
+    input:focus {
+      border-color: var(--red-pen);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.06), 0 0 0 3px rgba(230,57,70,0.18);
+    }
+
+    /* ── 버튼 ── */
+    .btn {
+      font-family: 'Jua', sans-serif;
+      font-size: 1rem;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: translateY(2px); box-shadow: none !important; }
+    .btn-check {
+      background: var(--ink-blue);
+      color: #fff;
+      box-shadow: 0 4px 0 #124e6b;
+      font-size: 1.05rem;
+      padding: 12px 20px;
+      border: 2px solid #1d3557;
+    }
+    .btn-check:hover { background: #5a99bb; }
+    .btn-quiz {
+      background: var(--ink-blue);
+      color: #fff;
+      box-shadow: 0 4px 0 #124e6b;
+      width: 100%;
+      font-size: 1.05rem;
+      padding: 12px;
+      margin-top: 6px;
+    }
+    .btn-quiz:hover { background: #5a99bb; }
+    .btn-answer {
+      background: var(--red-pen);
+      color: #fff;
+      box-shadow: 0 4px 0 #a01c27;
+    }
+    .btn-answer:hover { background: #f05560; }
+
+    /* ── 결과 박스 ── */
+    .result-box {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-family: 'Jua', sans-serif;
+      font-size: 1.05rem;
+      min-height: 52px;
+      transition: all 0.3s;
+      position: relative;
+    }
+    .result-prime {
+      background: #e6f7ef;
+      border: 2px solid var(--board-green);
+      color: var(--board-green);
+    }
+    .result-not-prime {
+      background: #fff0f1;
+      border: 2px solid var(--red-pen);
+      color: var(--red-pen);
+    }
+    .result-error {
+      background: #fff8e6;
+      border: 2px solid var(--chalk-orange);
+      color: #b07800;
+    }
+    .result-hidden { display: none; }
+
+    /* ── 퀴즈 숫자 표시 ── */
+    .quiz-number-display {
+      text-align: center;
+      margin: 18px 0 14px;
+    }
+    .quiz-number {
+      font-family: 'Nanum Pen Script', cursive;
+      font-size: 4.5rem;
+      color: var(--blue-pen);
+      line-height: 1;
+      text-shadow: 3px 3px 0 rgba(69,123,157,0.2);
+      display: inline-block;
+      animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.4) rotate(-10deg); opacity: 0; }
+      to   { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .quiz-question {
+      font-family: 'Gaegu', cursive;
+      font-size: 1.1rem;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .quiz-btn-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin: 10px 0;
+    }
+    .btn-yes {
+      flex: 1;
+      background: var(--board-green);
+      color: #fff;
+      box-shadow: 0 4px 0 #1a4731;
+      font-size: 1.1rem;
+      padding: 12px;
+    }
+    .btn-yes:hover { background: #3a7d5d; }
+    .btn-no {
+      flex: 1;
+      background: var(--red-pen);
+      color: #fff;
+      box-shadow: 0 4px 0 #a01c27;
+      font-size: 1.1rem;
+      padding: 12px;
+    }
+    .btn-no:hover { background: #f05560; }
+    .btn-disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* ── 퀴즈 점수 ── */
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      font-family: 'Gaegu', cursive;
+      font-size: 0.95rem;
+      color: #888;
+    }
+    .score-badge {
+      background: var(--chalk-yellow);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-family: 'Jua', sans-serif;
+      font-size: 0.9rem;
+      color: var(--blue-pen);
+      border: 2px solid #d4c060;
+    }
+
+    /* ── 축하 오버레이 ── */
+    .celebrate-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.0);
+      z-index: 999;
+      pointer-events: none;
+    }
+    .celebrate-overlay.active { display: block; }
+
+    .celebrate-popup {
+      display: none;
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.5);
+      z-index: 1000;
+      background: #fffef5;
+      border: 4px solid var(--chalk-yellow);
+      border-radius: 20px;
+      padding: 36px 44px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2), 8px 8px 0 #d4c060;
+      animation: none;
+    }
+    .celebrate-popup.active {
+      display: block;
+      animation: bounceIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    }
+    @keyframes bounceIn {
+      from { transform: translate(-50%,-50%) scale(0.3) rotate(-10deg); opacity: 0; }
+      to   { transform: translate(-50%,-50%) scale(1) rotate(0deg); opacity: 1; }
+    }
+    .celebrate-emoji { font-size: 3.5rem; display: block; margin-bottom: 8px; }
+    .celebrate-title {
+      font-family: 'Jua', sans-serif;
+      font-size: 1.8rem;
+      color: var(--board-green);
+      margin-bottom: 6px;
+    }
+    .celebrate-msg {
+      font-family: 'Gaegu', cursive;
+      font-size: 1.1rem;
+      color: #666;
+    }
+    .btn-close-celebrate {
+      margin-top: 18px;
+      background: var(--chalk-yellow);
+      color: var(--blue-pen);
+      border: 2px solid #d4c060;
+      box-shadow: 0 4px 0 #b8a840;
+      font-size: 1rem;
+      padding: 10px 24px;
+    }
+    .btn-close-celebrate:hover { background: #f5dd70; }
+
+    /* ── 틀렸을 때 ── */
+    .wrong-shake {
+      animation: shake 0.45s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-10px); }
+      40%      { transform: translateX(10px); }
+      60%      { transform: translateX(-8px); }
+      80%      { transform: translateX(8px); }
+    }
+
+    /* ── 꽃종이 조각 ── */
+    .confetti-piece {
+      position: fixed;
+      width: 10px; height: 10px;
+      opacity: 0;
+      animation: confettiFall 1.6s ease-in forwards;
+      border-radius: 2px;
+      z-index: 998;
+      pointer-events: none;
+    }
+    @keyframes confettiFall {
+      0%   { opacity: 1; transform: translateY(-20px) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+    }
+
+    /* ── 소수 설명 팁 ── */
+    .tip-box {
+      margin-top: 18px;
+      padding: 12px 14px;
+      background: rgba(168,218,220,0.25);
+      border-left: 4px solid var(--chalk-blue);
+      border-radius: 0 8px 8px 0;
+      font-family: 'Gaegu', cursive;
+      font-size: 0.95rem;
+      color: #456;
+      line-height: 1.6;
+    }
+    .tip-box strong { color: var(--blue-pen); }
+
+    /* ── 푸터 ── */
+    .footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 16px;
+      font-family: 'Gaegu', cursive;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+
+    /* ── 에러 메시지 인풋 밑 ── */
+    .input-hint {
+      font-family: 'Gaegu', cursive;
+      font-size: 0.88rem;
+      color: #e63946;
+      margin-top: 5px;
+      min-height: 18px;
+    }
+
+    /* ── streak 뱃지 ── */
+    .streak {
+      display: inline-block;
+      background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+      color: white;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-family: 'Jua', sans-serif;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 배경 장식 -->
+  <div class="deco">✏️</div>
+  <div class="deco">📐</div>
+  <div class="deco">📚</div>
+  <div class="deco">🔢</div>
+  <div class="deco">🎒</div>
+  <div class="deco">📏</div>
+  <div class="deco">🖊️</div>
+
+  <!-- 칠판 헤더 -->
+  <div class="header-board">
+    <div class="chalk-title">선아쌤의 소수 판별기 🔍</div>
+    <div class="chalk-sub">소수(Prime Number)를 함께 탐구해봐요!</div>
+    <div class="dust">· · · · · · · · · · ·</div>
+  </div>
+  <div class="board-shelf">
+    <div class="eraser">지우개</div>
+    <div class="chalks">
+      <div class="chalk-stick" style="background:#f5f0e8;"></div>
+      <div class="chalk-stick" style="background:#f9e784;"></div>
+      <div class="chalk-stick" style="background:#ffb3c6;"></div>
+      <div class="chalk-stick" style="background:#a8dadc;"></div>
+    </div>
+  </div>
+
+  <!-- 메인 그리드 -->
+  <div class="main">
+
+    <!-- ── 카드 1: 소수 판별기 ── -->
+    <div class="card" id="checker-card">
+      <span class="card-icon">🔎</span>
+      <div class="card-title"><span>소수 판별기</span></div>
+
+      <div class="input-row">
+        <input
+          type="number"
+          id="checker-input"
+          placeholder="자연수를 입력하세요"
+          min="1"
+          step="1"
+          oninput="sanitizeNatural(this)"
+          onkeydown="if(event.key==='Enter') checkPrime()"
+        />
+        <button class="btn btn-check" onclick="checkPrime()">✏️ 입력</button>
+      </div>
+      <div class="input-hint" id="checker-hint"></div>
+
+      <div class="result-box result-hidden" id="checker-result"></div>
+
+      <div class="tip-box">
+        💡 <strong>소수란?</strong><br>
+        1보다 큰 자연수 중에서 <strong>1과 자기 자신</strong>만을 약수로 가지는 수예요.<br>
+        예: 2, 3, 5, 7, 11, 13 …
+      </div>
+    </div>
+
+    <!-- ── 카드 2: 소수 퀴즈 ── -->
+    <div class="card" id="quiz-card">
+      <span class="card-icon">🧠</span>
+      <div class="card-title"><span>소수 퀴즈</span></div>
+
+      <div class="score-row">
+        <span class="score-badge" style="background:#e6f7ef; border-color:#2d6a4f; color:#2d6a4f;">🏆 총점: <span id="quiz-score">0</span> / 100점</span>
+        <span id="streak-display" style="display:none;" class="streak">🔥 <span id="streak-count">0</span>연속!</span>
+        <span class="score-badge"><span id="quiz-total">0</span> / 10문제</span>
+      </div>
+
+      <div id="quiz-start-area">
+        <p style="font-family:'Gaegu',cursive; color:#777; font-size:1rem; margin-bottom:12px; line-height:1.6;">
+          버튼을 누르면 랜덤한 숫자가 나와요!<br>소수인지 아닌지 맞춰보세요~ 😄
+        </p>
+        <button class="btn btn-quiz" onclick="startQuiz()">퀴즈 시작!</button>
+      </div>
+
+      <div id="quiz-area" style="display:none;">
+        <div class="quiz-number-display">
+          <div class="quiz-number" id="quiz-number">?</div>
+          <div class="quiz-question">이 수는 소수일까요?</div>
+        </div>
+
+        <div class="quiz-btn-row">
+          <button class="btn btn-yes" id="btn-yes" onclick="answerQuiz(true)">⭕ 소수야!</button>
+          <button class="btn btn-no"  id="btn-no"  onclick="answerQuiz(false)">❌ 아니야!</button>
+        </div>
+
+        <div class="result-box result-hidden" id="quiz-result"></div>
+
+        <button class="btn btn-quiz" onclick="nextQuestion()" id="btn-next" style="display:none; margin-top:10px;">
+          다음 문제 →
+        </button>
+      </div>
+
+      <!-- 10문제 완료 결과 화면 -->
+      <div id="quiz-finish" style="display:none; text-align:center; padding: 10px 0;">
+        <div style="font-size:3rem; margin-bottom:8px;" id="finish-emoji">🏆</div>
+        <div style="font-family:'Jua',sans-serif; font-size:1.5rem; color:var(--blue-pen); margin-bottom:4px;">
+          최종 점수: <span id="finish-score" style="color:var(--board-green); font-size:2rem;">0</span>점 / 100점
+        </div>
+        <div style="font-family:'Gaegu',cursive; font-size:1rem; color:#666; margin-bottom:16px;" id="finish-msg"></div>
+        <button class="btn btn-quiz" onclick="startQuiz()" style="margin-top:0;">🔄 다시 도전!</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 축하 팝업 -->
+  <div class="celebrate-overlay" id="celebrate-overlay" onclick="closeCelebrate()"></div>
+  <div class="celebrate-popup" id="celebrate-popup">
+    <span class="celebrate-emoji" id="celebrate-emoji">🎉</span>
+    <div class="celebrate-title" id="celebrate-title">정답이에요!</div>
+    <div class="celebrate-msg" id="celebrate-msg">잘했어요!</div>
+    <button class="btn btn-close-celebrate" onclick="closeCelebrate()">감사해요 선생님! 🙏</button>
+  </div>
+
+  <div class="footer">✏️ 선아쌤의 수학 교실 · 함께 배우는 즐거움 📚</div>
+
+  <script>
+    /* ──────────────────────────────────
+       유틸: 소수 판별
+    ────────────────────────────────── */
+    function isPrime(n) {
+      if (n < 2) return false;
+      if (n === 2) return true;
+      if (n % 2 === 0) return false;
+      for (let i = 3; i <= Math.sqrt(n); i += 2) {
+        if (n % i === 0) return false;
+      }
+      return true;
+    }
+
+    /* ──────────────────────────────────
+       유틸: 자연수만 허용
+    ────────────────────────────────── */
+    function sanitizeNatural(input) {
+      // 소수점, 음수, 0 제거
+      let v = input.value.replace(/[^0-9]/g, '');
+      if (v.startsWith('0') && v.length > 1) v = v.replace(/^0+/, '');
+      input.value = v;
+    }
+
+    /* ──────────────────────────────────
+       판별기
+    ────────────────────────────────── */
+    function checkPrime() {
+      const input = document.getElementById('checker-input');
+      const result = document.getElementById('checker-result');
+      const hint   = document.getElementById('checker-hint');
+      const raw = input.value.trim();
+
+      hint.textContent = '';
+      result.className = 'result-box result-hidden';
+      result.textContent = '';
+
+      if (raw === '') {
+        hint.textContent = '숫자를 입력해주세요!';
+        return;
+      }
+      const n = parseInt(raw, 10);
+      if (!Number.isInteger(n) || n < 1) {
+        hint.textContent = '1 이상의 자연수를 입력해주세요!';
+        return;
+      }
+      if (n > 1e9) {
+        hint.textContent = '너무 큰 수예요! 10억 이하로 입력해주세요.';
+        return;
+      }
+
+      const prime = isPrime(n);
+      if (prime) {
+        result.className = 'result-box result-prime';
+        result.innerHTML = `✅ <strong>${n}</strong>은(는) <strong>소수</strong>예요! 대단해요~ 🌟`;
+      } else {
+        if (n === 1) {
+          result.className = 'result-box result-not-prime';
+          result.innerHTML = `❌ <strong>1</strong>은 소수가 아니에요.<br><small style="font-family:Gaegu">소수는 2부터 시작해요!</small>`;
+        } else {
+          // 약수 일부 구하기
+          const factors = getDivisors(n);
+          result.className = 'result-box result-not-prime';
+          result.innerHTML = `❌ <strong>${n}</strong>은(는) 소수가 아니에요.<br>
+            <small style="font-family:Gaegu;font-size:0.9rem">약수: ${factors.slice(0,8).join(', ')}${factors.length>8?'…':''}</small>`;
+        }
+      }
+    }
+
+    function getDivisors(n) {
+      const divs = [];
+      for (let i = 1; i <= n; i++) {
+        if (n % i === 0) divs.push(i);
+        if (divs.length > 12) { divs.push('...'); break; }
+      }
+      return divs;
+    }
+
+    /* ──────────────────────────────────
+       퀴즈
+    ────────────────────────────────── */
+    let quizNumber = 0;
+    let quizScore  = 0;
+    let quizTotal  = 0;
+    let quizStreak = 0;
+    let quizAnswered = false;
+    const QUIZ_MAX = 10;
+
+    function getRandomQuizNumber() {
+      return Math.floor(Math.random() * 149) + 2;
+    }
+
+    function startQuiz() {
+      quizScore = 0; quizTotal = 0; quizStreak = 0;
+      document.getElementById('quiz-score').textContent = 0;
+      document.getElementById('quiz-total').textContent = 0;
+      document.getElementById('streak-display').style.display = 'none';
+      document.getElementById('quiz-start-area').style.display = 'none';
+      document.getElementById('quiz-area').style.display = 'block';
+      document.getElementById('quiz-finish').style.display = 'none';
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      quizAnswered = false;
+      quizNumber = getRandomQuizNumber();
+
+      const numEl = document.getElementById('quiz-number');
+      numEl.textContent = quizNumber;
+      numEl.style.animation = 'none';
+      void numEl.offsetWidth;
+      numEl.style.animation = '';
+
+      document.getElementById('quiz-result').className = 'result-box result-hidden';
+      document.getElementById('quiz-result').textContent = '';
+      document.getElementById('btn-next').style.display = 'none';
+
+      document.getElementById('btn-yes').classList.remove('btn-disabled');
+      document.getElementById('btn-no').classList.remove('btn-disabled');
+    }
+
+    function answerQuiz(userSaysPrime) {
+      if (quizAnswered) return;
+      quizAnswered = true;
+      quizTotal++;
+      document.getElementById('quiz-total').textContent = quizTotal;
+
+      document.getElementById('btn-yes').classList.add('btn-disabled');
+      document.getElementById('btn-no').classList.add('btn-disabled');
+
+      const correct = isPrime(quizNumber);
+      const isRight = (userSaysPrime === correct);
+      const resultEl = document.getElementById('quiz-result');
+
+      if (isRight) {
+        quizScore += 10;
+        quizStreak++;
+        document.getElementById('quiz-score').textContent = quizScore;
+        updateStreak();
+
+        resultEl.className = 'result-box result-prime';
+        resultEl.innerHTML = `✅ 정답이에요! <strong>${quizNumber}</strong>은(는) ${correct ? '소수' : '소수가 아닌 수'}예요! (+10점)`;
+
+        if (quizStreak >= 3 || Math.random() < 0.6) {
+          setTimeout(() => showCelebrate(quizStreak), 300);
+        }
+      } else {
+        quizStreak = 0;
+        updateStreak();
+        resultEl.className = 'result-box result-not-prime';
+        resultEl.innerHTML = `❌ 아쉬워요! <strong>${quizNumber}</strong>은(는) ${correct ? '소수' : '소수가 아닌 수'}예요.`;
+
+        document.getElementById('quiz-card').classList.add('wrong-shake');
+        setTimeout(() => document.getElementById('quiz-card').classList.remove('wrong-shake'), 500);
+      }
+
+      if (quizTotal >= QUIZ_MAX) {
+        document.getElementById('btn-next').style.display = 'none';
+        setTimeout(() => showFinish(), 700);
+      } else {
+        document.getElementById('btn-next').style.display = 'block';
+      }
+    }
+
+    function nextQuestion() {
+      loadQuestion();
+    }
+
+    function showFinish() {
+      document.getElementById('quiz-area').style.display = 'none';
+      const fin = document.getElementById('quiz-finish');
+      fin.style.display = 'block';
+      const s = quizScore;
+      let emoji, msg;
+      if (s === 100)     { emoji = '🏆'; msg = '완벽해요! 소수 마스터! 👑'; }
+      else if (s >= 80)  { emoji = '🌟'; msg = '정말 잘했어요! 거의 다 맞혔어요~'; }
+      else if (s >= 60)  { emoji = '😊'; msg = '훌륭해요! 조금만 더 연습해봐요!'; }
+      else if (s >= 40)  { emoji = '📚'; msg = '괜찮아요! 다시 도전해볼까요?'; }
+      else               { emoji = '💪'; msg = '소수를 더 공부하고 다시 도전!'; }
+      document.getElementById('finish-emoji').textContent = emoji;
+      document.getElementById('finish-score').textContent = s;
+      document.getElementById('finish-msg').textContent = msg;
+      if (s === 100) spawnConfetti();
+    }
+
+    function updateStreak() {
+      const el = document.getElementById('streak-display');
+      const cnt = document.getElementById('streak-count');
+      if (quizStreak >= 2) {
+        el.style.display = 'inline-block';
+        cnt.textContent = quizStreak;
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    /* ──────────────────────────────────
+       축하 팝업
+    ────────────────────────────────── */
+    const celebrateMsgs = [
+      { emoji:'🎉', title:'정말 잘했어요!',    msg:'선아쌤이 칭찬 도장 꾹~ 눌러줄게요! 🌟' },
+      { emoji:'🌈', title:'완벽해요!',          msg:'수학 천재 등장! 계속 도전해봐요~ 💪' },
+      { emoji:'⭐', title:'대박이에요!',        msg:'이 정도면 선아쌤보다 잘하는 거 아닌가요? 😄' },
+      { emoji:'🏆', title:'훌륭해요!',          msg:'소수 마스터를 향해 나아가고 있어요! 🚀' },
+      { emoji:'🎊', title:'최고예요!',          msg:'선아쌤도 깜짝 놀랐어요! 정말 대단해요~ 🎈' },
+      { emoji:'🥇', title:'정답!',              msg:'역시 우리 반 수학 왕! 👑' },
+    ];
+
+    const streakMsgs = [
+      { emoji:'🔥', title:`${0}연속 정답!`,  msg:'불타오르고 있어요! 멈추지 마세요! 🌟' },
+      { emoji:'⚡', title:`${0}연속 정답!`,  msg:'번개처럼 빠른 두뇌! 놀라워요! ✨' },
+      { emoji:'🎯', title:`${0}연속 정답!`,  msg:'정확도 100%! 소수 전문가 등극! 🏅' },
+    ];
+
+    function showCelebrate(streak) {
+      let data;
+      if (streak >= 3) {
+        const s = streakMsgs[Math.floor(Math.random() * streakMsgs.length)];
+        data = { ...s, title: `${streak}연속 정답!` };
+      } else {
+        data = celebrateMsgs[Math.floor(Math.random() * celebrateMsgs.length)];
+      }
+
+      document.getElementById('celebrate-emoji').textContent = data.emoji;
+      document.getElementById('celebrate-title').textContent = data.title;
+      document.getElementById('celebrate-msg').textContent   = data.msg;
+
+      const overlay = document.getElementById('celebrate-overlay');
+      const popup   = document.getElementById('celebrate-popup');
+      overlay.classList.add('active');
+      popup.classList.remove('active');
+      void popup.offsetWidth;
+      popup.classList.add('active');
+
+      spawnConfetti();
+    }
+
+    function closeCelebrate() {
+      document.getElementById('celebrate-overlay').classList.remove('active');
+      document.getElementById('celebrate-popup').classList.remove('active');
+    }
+
+    /* ──────────────────────────────────
+       꽃종이
+    ────────────────────────────────── */
+    const confettiColors = ['#f9e784','#ffb3c6','#a8dadc','#ffb347','#c7f2a4','#b5deff','#ffd6a5'];
+
+    function spawnConfetti() {
+      for (let i = 0; i < 55; i++) {
+        setTimeout(() => {
+          const el = document.createElement('div');
+          el.className = 'confetti-piece';
+          el.style.left = Math.random() * 100 + 'vw';
+          el.style.top  = '-20px';
+          el.style.background = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+          el.style.width  = (Math.random() * 10 + 6) + 'px';
+          el.style.height = (Math.random() * 10 + 6) + 'px';
+          el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+          el.style.animationDuration = (Math.random() * 0.8 + 1.2) + 's';
+          el.style.animationDelay = (Math.random() * 0.4) + 's';
+          document.body.appendChild(el);
+          setTimeout(() => el.remove(), 2200);
+        }, i * 20);
+      }
+    }
+
+    /* ──────────────────────────────────
+       Enter 키 지원 (판별기)
+    ────────────────────────────────── */
+    document.getElementById('checker-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') checkPrime();
+    });
+  </script>
+</body>
+</html>
